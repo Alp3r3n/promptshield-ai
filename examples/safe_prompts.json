@@ -1,0 +1,14 @@
+[
+  "Explain how a CUDA kernel launch works.",
+  "How can I structure a FastAPI project for production?",
+  "What is prompt injection and how can I defend against it?",
+  "How do I use pandas to analyze server logs?",
+  "Explain the difference between NumPy and CuPy.",
+  "What is the difference between a process and a thread in Python?",
+  "How do I use SQLAlchemy with SQLite?",
+  "Explain backpropagation in a simple feed-forward network.",
+  "What is the role of the GIL in CPython?",
+  "How can I write unit tests for a FastAPI endpoint?",
+  "What are the trade-offs between gRPC and REST?",
+  "How does mixed-precision training work on NVIDIA GPUs?"
+]

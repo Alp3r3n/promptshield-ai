@@ -1,0 +1,19 @@
+# Colang flows for PromptShield AI guardrails.
+
+define flow check user prompt
+  $allowed = execute self_check_input
+  if $allowed == "no"
+    bot refuse unsafe input
+    stop
+
+define flow check bot response
+  $allowed = execute self_check_output
+  if $allowed == "no"
+    bot refuse unsafe output
+    stop
+
+define bot refuse unsafe input
+  "I can't help with that request because it appears to violate the assistant's safety policy."
+
+define bot refuse unsafe output
+  "The response was blocked because it appeared to violate the safety policy."
