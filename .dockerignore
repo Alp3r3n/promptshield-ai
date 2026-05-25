@@ -1,0 +1,37 @@
+# Local Python environment
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Secrets and runtime artifacts (not copied into the image)
+.env
+.env.local
+data/
+logs/
+*.db
+*.log
+
+# Version control
+.git/
+.gitignore
+.github/
+
+# Editor / OS noise
+.idea/
+.vscode/
+.DS_Store
+
+# Private spec file
+PromptShieldAI.json
+
+# Dev-only files that don't need to ship in the image
+tests/
+docs/
+examples/
+README.md
+LICENSE
+Dockerfile.*
+docker-compose.yml

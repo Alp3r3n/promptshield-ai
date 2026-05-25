@@ -1,0 +1,33 @@
+# Streamlit dashboard image for PromptShield AI.
+# Reuses the same requirements.txt — the dashboard imports app.database to
+# read the SQLite log file directly, so it needs the app package available.
+
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Same shared requirements.txt as the API — installing it needs a C++ toolchain
+# for the optional nemoguardrails dependency chain (annoy).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+COPY app/ ./app/
+COPY dashboard/ ./dashboard/
+
+RUN mkdir -p data
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "dashboard/streamlit_app.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true", \
+     "--browser.gatherUsageStats=false"]

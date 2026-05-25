@@ -24,12 +24,14 @@ A small but realistic security gateway that sits between your application and an
 8. [Environment Variables](#environment-variables)
 9. [Running the Backend](#running-the-backend)
 10. [Running the Dashboard](#running-the-dashboard)
-11. [Example Requests](#example-requests)
-12. [Testing](#testing)
-13. [Limitations](#limitations)
-14. [Future Work](#future-work)
-15. [What This Project Demonstrates](#what-this-project-demonstrates)
-16. [License](#license)
+11. [Docker Local Deployment](#docker-local-deployment)
+12. [Example Requests](#example-requests)
+13. [Testing](#testing)
+14. [Limitations](#limitations)
+15. [Future Work](#future-work)
+16. [Why I Built This](#why-i-built-this)
+17. [What This Project Demonstrates](#what-this-project-demonstrates)
+18. [License](#license)
 
 ---
 
@@ -170,6 +172,62 @@ streamlit run dashboard/streamlit_app.py
 
 The dashboard reads directly from `data/prompt_logs.db`, so logs produced by any client populate it.
 
+## Docker Local Deployment
+
+A minimal Docker setup is included so the whole stack can be reproduced with one command — no virtualenv, no version juggling. It was added to make the demo easier to run locally and to give reviewers a single-command path to a working environment.
+
+> **Status:** validated locally. `docker compose up --build` brings up both services successfully; `GET /health` returns 200, `POST /chat` blocks a prompt-injection attempt, and the Streamlit dashboard renders the logs written by the Dockerised API.
+
+Two services are defined in [docker-compose.yml](docker-compose.yml):
+
+- **api** — FastAPI backend, port `8000`
+- **dashboard** — Streamlit dashboard, port `8501`
+
+The dashboard shares the `./data` directory with the API via a bind mount, so the SQLite log written by `/chat` is visible to the dashboard immediately. The dashboard can also reach the backend over the internal compose network at `http://api:8000` (exposed as `API_BASE_URL`).
+
+Build and start both services:
+
+```bash
+docker compose up --build
+```
+
+Once both containers are healthy, use these endpoints:
+
+| Purpose | URL |
+|---|---|
+| API root | `http://localhost:8000` |
+| Interactive API docs (Swagger UI) | `http://localhost:8000/docs` |
+| Health check | `http://localhost:8000/health` |
+| Streamlit dashboard | `http://localhost:8501` |
+
+Stop and clean up containers:
+
+```bash
+docker compose down
+```
+
+### Mock mode and reported cost
+
+The compose file uses the same mock-mode defaults as the local run, so it works without any API keys. In mock mode the deterministic mock provider answers requests locally — **no real provider API call is made**, so `estimated_cost_usd` is reported as `0.0` for every request. That is the actual (zero) cost of running mock mode, not a placeholder. Switching `LLM_PROVIDER=openai` with a real key starts producing non-zero estimates based on the usage returned by the provider.
+
+To use a real provider, add the relevant env vars (e.g. `LLM_PROVIDER=openai`, `OPENAI_API_KEY=...`) to the `api` service in `docker-compose.yml` or via a `.env` file picked up by Compose.
+
+### Verifying NeMo Guardrails
+
+Rule-based guardrails are **always on**. NVIDIA NeMo Guardrails is an **optional** layer controlled by the `ENABLE_NEMO_GUARDRAILS` flag (off by default, including inside the bundled `docker-compose.yml`). To check which guardrail layers are active, hit the health endpoint:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Inspect the `nemo_enabled` field in the response:
+
+```json
+{ "status": "ok", "provider": "mock", "mock_mode": true, "nemo_enabled": false }
+```
+
+To turn NeMo Guardrails on, set `ENABLE_NEMO_GUARDRAILS=true` (in `.env` or the `api` service's environment) and restart the stack — `nemo_enabled` will then report `true`.
+
 ## Example Requests
 
 ### Safe prompt (allowed)
@@ -265,7 +323,6 @@ Each test runs against an isolated temp SQLite DB, so your real logs are never t
 - A future sandboxed-execution experiment for tool-using agents *(not part of the MVP)*
 - Authentication, rate limiting, and multi-tenant logging
 - MLflow experiment tracking for guardrail tuning
-- Optional Docker / deployment recipe
 
 ## Why I Built This
 
@@ -273,15 +330,7 @@ I built PromptShield AI to practice how LLM applications can be wrapped with a l
 
 The project focuses on a simple but realistic flow: validate a prompt, run input guardrails, call a provider, check the output, log the request, estimate token cost, and visualize the result in a dashboard.
 
-This MVP demonstrates:
-
-- FastAPI API design with typed Pydantic schemas
-- Rule-based input and output guardrails
-- Mock and OpenAI-compatible provider abstraction
-- SQLite-based request logging
-- Token and cost estimation
-- Streamlit dashboard for request visibility
-- Automated tests over safe and unsafe prompt examples
+## What This Project Demonstrates
 
 - **Clean API design** — FastAPI with typed Pydantic schemas, lifespan events, and a clear `/chat` contract
 - **Security-aware engineering** — explicit input + output guardrails, regex-based detection with categorised reasons, output redaction

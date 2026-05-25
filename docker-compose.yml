@@ -1,0 +1,44 @@
+# Minimal local-development docker compose for PromptShield AI.
+# Run with:   docker compose up --build
+# Stop with:  docker compose down
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: promptshield-api
+    container_name: promptshield-api
+    ports:
+      - "8000:8000"
+    environment:
+      LLM_PROVIDER: mock
+      ENABLE_MOCK_MODE: "true"
+      ENABLE_NEMO_GUARDRAILS: "true"
+      ENABLE_COST_TRACKING: "true"
+      DATABASE_URL: sqlite:///data/prompt_logs.db
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+      MOCK_MODE: "true"
+    volumes:
+      # Share the SQLite log + file logs with the host and the dashboard service.
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    image: promptshield-dashboard
+    container_name: promptshield-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      # The dashboard reads the SQLite log directly; API_BASE_URL is exposed
+      # for future API-driven views without code changes.
+      DATABASE_URL: sqlite:///data/prompt_logs.db
+      API_BASE_URL: http://api:8000
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - api
